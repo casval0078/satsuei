@@ -19,7 +19,7 @@ export async function startCapture(storage) {
             await storageRef.put(blob);
             console.log(`Uploaded ${fileName}`);
         }, 'image/jpeg');
-    }, 1000);
+    }, 10000);
 }
 
 export function stopCapture() {
