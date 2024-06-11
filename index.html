@@ -48,11 +48,6 @@
         const storage = getStorage(app);
         const auth = getAuth(app);
 
-        // 匿名認証
-        signInAnonymously(auth).catch((error) => {
-            console.error('Authentication failed:', error);
-        });
-
         const captureButton = document.getElementById('captureButton');
         let isCapturing = false;
 
