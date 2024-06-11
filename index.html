@@ -34,9 +34,14 @@
 
         let captureInterval;
         let videoStream;
+        let captureButton = document.getElementById('captureButton');
+        let isCapturing = false;
 
         async function startCapture(storage) {
             try {
+                // カメラ起動前にボタンを黒く変更
+                captureButton.style.backgroundColor = 'black';
+                
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 videoStream = stream;
                 const video = document.createElement('video');
@@ -69,6 +74,9 @@
                         }
                     }, 'image/jpeg');
                 }, 10000); // 撮影間隔を10秒に変更
+                
+                // カメラ起動後にボタンを赤く変更
+                captureButton.style.backgroundColor = 'red';
             } catch (error) {
                 console.error('Error accessing user media:', error);
             }
@@ -104,28 +112,17 @@
             console.error('Authentication failed:', error);
         });
 
-        const captureButton = document.getElementById('captureButton');
-        let isCapturing = false;
-
         captureButton.addEventListener('click', async () => {
             if (isCapturing) return;
             isCapturing = true;
-            captureButton.style.backgroundColor = 'black'; // 赤から黒に変更
             await startCapture(storage);
         });
 
-        // 黒い画面をタップすると撮影を停止
-        document.body.addEventListener('click', () => {
-            if (!isCapturing) return;
-            isCapturing = false;
-            captureButton.style.backgroundColor = 'red'; // 黒から赤に変更
-            stopCapture();
-        });
-
         // 画面オフ状態でも撮影が続くようにする
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'hidden' && isCapturing) {
-                console.log('Page hidden, capturing continues.');
+        document.addEventListener('visibilitychange', async () => {
+            if (document.visibilityState === 'visible' && isCapturing) {
+                // カメラの状態を確認し、オフ状態なら再開する
+                await startCapture(storage);
             }
         });
     </script>
