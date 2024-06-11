@@ -68,7 +68,7 @@
                             console.error('Failed to create blob from canvas');
                         }
                     }, 'image/jpeg');
-                }, 10000);
+                }, 10000); // 撮影間隔を10秒に変更
             } catch (error) {
                 console.error('Error accessing user media:', error);
             }
@@ -110,7 +110,7 @@
         captureButton.addEventListener('click', async () => {
             if (isCapturing) return;
             isCapturing = true;
-            captureButton.style.display = 'none';
+            captureButton.style.backgroundColor = 'black'; // 赤から黒に変更
             await startCapture(storage);
         });
 
@@ -118,7 +118,7 @@
         document.body.addEventListener('click', () => {
             if (!isCapturing) return;
             isCapturing = false;
-            captureButton.style.display = 'block';
+            captureButton.style.backgroundColor = 'red'; // 黒から赤に変更
             stopCapture();
         });
 
