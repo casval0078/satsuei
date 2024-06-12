@@ -3,128 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カメラアプリ</title>
+    <title>Camera Capture</title>
     <style>
-        body {
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
             background-color: black;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
+            overflow: hidden;
         }
-        #captureButton {
-            background-color: red;
-            border: none;
-            border-radius: 50%;
+        #capture-button {
             width: 100px;
             height: 100px;
+            background-color: red;
+            border-radius: 50%;
+            border: none;
             cursor: pointer;
+        }
+        #overlay {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 24px;
         }
     </style>
 </head>
 <body>
-    <button id="captureButton"></button>
+    <button id="capture-button"></button>
+    <div id="overlay">タップして停止</div>
+    <video id="video" autoplay playsinline style="display:none;"></video>
 
-    <!-- FirebaseのSDKをモジュールとして読み込む -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-app.js";
-        import { getStorage, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-storage.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-auth.js";
-
-        let captureInterval;
-        let videoStream;
-        let captureButton = document.getElementById('captureButton');
-        let isCapturing = false;
-
-        async function startCapture(storage) {
-            try {
-                // カメラ起動前にボタンを黒く変更
-                captureButton.style.backgroundColor = 'black';
-                
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                videoStream = stream;
-                const video = document.createElement('video');
-                video.srcObject = stream;
-                await video.play();
-
-                const canvas = document.createElement('canvas');
-                const context = canvas.getContext('2d');
-
-                // ビデオストリームのサイズを取得してキャンバスサイズを設定
-                video.onloadedmetadata = () => {
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                };
-
-                captureInterval = setInterval(async () => {
-                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-                    canvas.toBlob(async (blob) => {
-                        if (blob) {
-                            const fileName = `photos/${Date.now()}.jpg`;
-                            const storageRef = ref(storage, fileName);
-                            try {
-                                await uploadBytes(storageRef, blob);
-                                console.log(`Uploaded ${fileName}`);
-                            } catch (error) {
-                                console.error(`Failed to upload ${fileName}:`, error);
-                            }
-                        } else {
-                            console.error('Failed to create blob from canvas');
-                        }
-                    }, 'image/jpeg');
-                }, 10000); // 撮影間隔を10秒に変更
-                
-                // カメラ起動後にボタンを赤く変更
-                captureButton.style.backgroundColor = 'red';
-            } catch (error) {
-                console.error('Error accessing user media:', error);
-            }
-        }
-
-        function stopCapture() {
-            clearInterval(captureInterval);
-            if (videoStream) {
-                videoStream.getTracks().forEach(track => track.stop());
-            }
-            console.log('Capturing stopped.');
-        }
-
-        // Firebaseの設定を初期化
+    <!-- Firebase Configuration -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-storage.js"></script>
+    <script>
+        // Your Firebase configuration
         const firebaseConfig = {
-            apiKey: "AIzaSyCIY6aAg-JCpKnm6X51tEktW6v_fLWfU10",
-            authDomain: "satsuei-c1b33.firebaseapp.com",
-            projectId: "satsuei-c1b33",
-            storageBucket: "satsuei-c1b33.appspot.com",
-            messagingSenderId: "948629477465",
-            appId: "1:948629477465:web:84c23181285afd9d86f948",
-            measurementId: "G-KS0947K55F"
-        };
+ 	   apiKey: "AIzaSyCIY6aAg-JCpKnm6X51tEktW6v_fLWfU10",
+  	   authDomain: "satsuei-c1b33.firebaseapp.com",
+ 	   projectId: "satsuei-c1b33",
+ 	   storageBucket: "satsuei-c1b33.appspot.com",
+ 	   messagingSenderId: "948629477465",
+	   appId: "1:948629477465:web:84c23181285afd9d86f948",
+ 	   measurementId: "G-KS0947K55F"
+	};
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const storage = firebase.storage();
+    </script>
 
-        const app = initializeApp(firebaseConfig);
-        const storage = getStorage(app);
-        const auth = getAuth(app);
-
-        // 匿名認証
-        signInAnonymously(auth).then(() => {
-            console.log('Authenticated anonymously');
-        }).catch((error) => {
-            console.error('Authentication failed:', error);
-        });
+    <!-- Camera and Capture Script -->
+    <script>
+        const captureButton = document.getElementById('capture-button');
+        const overlay = document.getElementById('overlay');
+        const video = document.getElementById('video');
+        let mediaStream = null;
+        let captureInterval = null;
 
         captureButton.addEventListener('click', async () => {
-            if (isCapturing) return;
-            isCapturing = true;
-            await startCapture(storage);
+            captureButton.style.display = 'none';
+            overlay.style.display = 'flex';
+            
+            mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+            video.srcObject = mediaStream;
+
+            captureInterval = setInterval(captureAndUpload, 10000);
         });
 
-        // 画面オフ状態でも撮影が続くようにする
-        document.addEventListener('visibilitychange', async () => {
-            if (document.visibilityState === 'visible' && isCapturing) {
-                // カメラの状態を確認し、オフ状態なら再開する
-                await startCapture(storage);
+        overlay.addEventListener('click', () => {
+            clearInterval(captureInterval);
+            overlay.style.display = 'none';
+            captureButton.style.display = 'block';
+
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
             }
         });
+
+        async function captureAndUpload() {
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            canvas.toBlob(async (blob) => {
+                const storageRef = storage.ref();
+                const fileRef = storageRef.child(`images/${new Date().toISOString()}.jpg`);
+                await fileRef.put(blob);
+                console.log('Uploaded a blob or file!');
+            }, 'image/jpeg');
+        }
     </script>
 </body>
 </html>
