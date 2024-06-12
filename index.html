@@ -85,8 +85,8 @@
         const timerElement = document.getElementById('timer');
         const errorMessage = document.getElementById('error-message');
         let mediaStream = null;
-        let captureInterval = null;
-        let countdownInterval = null;
+        let mediaRecorder = null;
+        let chunks = [];
 
         captureButton.addEventListener('click', async () => {
             if (document.documentElement.requestFullscreen) {
@@ -107,7 +107,22 @@
                 mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
                 video.srcObject = mediaStream;
 
-                captureInterval = setInterval(captureAndUpload, 10000);
+                mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'video/webm' });
+                mediaRecorder.ondataavailable = event => {
+                    if (event.data.size > 0) {
+                        chunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const blob = new Blob(chunks, { type: 'video/webm' });
+                    chunks = [];
+                    await uploadVideo(blob);
+                };
+
+                mediaRecorder.start();
+
+                setTimeout(stopRecording, 10000); // Stop recording after 10 seconds
             } catch (err) {
                 console.error('Error accessing camera: ', err);
                 captureButton.style.display = 'block';
@@ -117,7 +132,7 @@
         });
 
         overlay.addEventListener('click', () => {
-            clearInterval(captureInterval);
+            stopRecording();
             overlay.style.display = 'none';
             captureButton.style.display = 'block';
 
@@ -146,24 +161,22 @@
             setInterval(updateClock, 1000);
         }
 
-        async function captureAndUpload() {
-            const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const context = canvas.getContext('2d');
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+        }
 
-            canvas.toBlob(async (blob) => {
-                const storageRef = storage.ref();
-                const fileRef = storageRef.child(`images/${new Date().toISOString()}.jpg`);
-                try {
-                    await fileRef.put(blob);
-                    console.log('Uploaded a blob or file!');
-                } catch (err) {
-                    console.error('Error uploading to Firebase: ', err);
-                    errorMessage.textContent = `Upload error: ${err.message}`;
-                }
-            }, 'image/jpeg');
+        async function uploadVideo(blob) {
+            const storageRef = storage.ref();
+            const fileRef = storageRef.child(`videos/${new Date().toISOString()}.webm`);
+            try {
+                await fileRef.put(blob);
+                console.log('Uploaded a video!');
+            } catch (err) {
+                console.error('Error uploading to Firebase: ', err);
+                errorMessage.textContent = `Upload error: ${err.message}`;
+            }
         }
     </script>
 </body>
