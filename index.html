@@ -51,14 +51,14 @@
     <script>
         // Your Firebase configuration
         var firebaseConfig = {
- 	   apiKey: "AIzaSyCIY6aAg-JCpKnm6X51tEktW6v_fLWfU10",
-  	   authDomain: "satsuei-c1b33.firebaseapp.com",
- 	   projectId: "satsuei-c1b33",
- 	   storageBucket: "satsuei-c1b33.appspot.com",
- 	   messagingSenderId: "948629477465",
-	   appId: "1:948629477465:web:84c23181285afd9d86f948",
- 	   measurementId: "G-KS0947K55F"
-	};
+            apiKey: "AIzaSyCIY6aAg-JCpKnm6X51tEktW6v_fLWfU10",
+            authDomain: "satsuei-c1b33.firebaseapp.com",
+            projectId: "satsuei-c1b33",
+            storageBucket: "satsuei-c1b33.appspot.com",
+            messagingSenderId: "948629477465",
+            appId: "1:948629477465:web:84c23181285afd9d86f948",
+            measurementId: "G-KS0947K55F"
+        };
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         var storage = firebase.storage();
@@ -72,13 +72,12 @@
         const timerElement = document.getElementById('timer');
         let mediaStream = null;
         let captureInterval = null;
-        let countdownInterval = null;
-        let countdown = 10;
+        let timeInterval = null;
 
         captureButton.addEventListener('click', async () => {
             captureButton.style.display = 'none';
             overlay.style.display = 'flex';
-            startCountdown();
+            startClock();
 
             try {
                 mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -94,10 +93,9 @@
 
         overlay.addEventListener('click', () => {
             clearInterval(captureInterval);
-            clearInterval(countdownInterval);
+            clearInterval(timeInterval);
             overlay.style.display = 'none';
             captureButton.style.display = 'block';
-            countdown = 10;
 
             if (mediaStream) {
                 mediaStream.getTracks().forEach(track => track.stop());
@@ -105,14 +103,13 @@
             }
         });
 
-        function startCountdown() {
-            timerElement.textContent = countdown;
-            countdownInterval = setInterval(() => {
-                countdown--;
-                if (countdown < 0) {
-                    countdown = 10;
-                }
-                timerElement.textContent = countdown;
+        function startClock() {
+            timeInterval = setInterval(() => {
+                const now = new Date();
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+                timerElement.textContent = `${hours}:${minutes}:${seconds}`;
             }, 1000);
         }
 
@@ -126,8 +123,12 @@
             canvas.toBlob(async (blob) => {
                 const storageRef = storage.ref();
                 const fileRef = storageRef.child(`images/${new Date().toISOString()}.jpg`);
-                await fileRef.put(blob);
-                console.log('Uploaded a blob or file!');
+                try {
+                    await fileRef.put(blob);
+                    console.log('Uploaded a blob or file!');
+                } catch (err) {
+                    console.error('Error uploading to Firebase: ', err);
+                }
             }, 'image/jpeg');
         }
     </script>
