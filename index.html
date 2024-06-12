@@ -15,7 +15,6 @@
             justify-content: center;
             align-items: center;
             overflow: hidden;
-            flex-wrap: wrap;
         }
         .button {
             width: 100px;
@@ -30,8 +29,24 @@
             align-items: center;
             color: white;
             font-size: 24px;
+            position: absolute;
         }
-        .green {
+        .top-left {
+            top: 10px;
+            left: 10px;
+        }
+        .top-right {
+            top: 10px;
+            right: 10px;
+        }
+        .bottom-left {
+            bottom: 10px;
+            left: 10px;
+            background-color: green;
+        }
+        .bottom-right {
+            bottom: 10px;
+            right: 10px;
             background-color: green;
         }
         #overlay {
@@ -60,10 +75,10 @@
     </style>
 </head>
 <body>
-    <button id="photo-front" class="button">内</button>
-    <button id="photo-back" class="button">外</button>
-    <button id="video-front" class="button green">内</button>
-    <button id="video-back" class="button green">外</button>
+    <button id="photo-front" class="button top-left">内</button>
+    <button id="photo-back" class="button top-right">外</button>
+    <button id="video-front" class="button bottom-left">内</button>
+    <button id="video-back" class="button bottom-right">外</button>
     <div id="overlay">
         <span id="timer"></span>
         <div id="error-message"></div>
