@@ -1,4 +1,44 @@
-
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Capture</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background-color: black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        #capture-button {
+            width: 100px;
+            height: 100px;
+            background-color: red;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+        }
+        #overlay {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 48px;
+        }
+    </style>
+</head>
+<body>
     <button id="capture-button"></button>
     <div id="overlay">
         <span id="timer"></span>
