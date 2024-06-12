@@ -86,9 +86,19 @@
         const errorMessage = document.getElementById('error-message');
         let mediaStream = null;
         let captureInterval = null;
-        let timeInterval = null;
+        let countdownInterval = null;
 
         captureButton.addEventListener('click', async () => {
+            if (document.documentElement.requestFullscreen) {
+                await document.documentElement.requestFullscreen();
+            } else if (document.documentElement.mozRequestFullScreen) { // Firefox
+                await document.documentElement.mozRequestFullScreen();
+            } else if (document.documentElement.webkitRequestFullscreen) { // Chrome, Safari and Opera
+                await document.documentElement.webkitRequestFullscreen();
+            } else if (document.documentElement.msRequestFullscreen) { // IE/Edge
+                await document.documentElement.msRequestFullscreen();
+            }
+
             captureButton.style.display = 'none';
             overlay.style.display = 'flex';
             startClock();
@@ -100,15 +110,14 @@
                 captureInterval = setInterval(captureAndUpload, 10000);
             } catch (err) {
                 console.error('Error accessing camera: ', err);
-                errorMessage.textContent = `Camera error: ${err.message}`;
                 captureButton.style.display = 'block';
                 overlay.style.display = 'none';
+                errorMessage.textContent = `Camera error: ${err.message}`;
             }
         });
 
         overlay.addEventListener('click', () => {
             clearInterval(captureInterval);
-            clearInterval(timeInterval);
             overlay.style.display = 'none';
             captureButton.style.display = 'block';
 
@@ -116,16 +125,25 @@
                 mediaStream.getTracks().forEach(track => track.stop());
                 mediaStream = null;
             }
+
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.mozCancelFullScreen) { // Firefox
+                document.mozCancelFullScreen();
+            } else if (document.webkitExitFullscreen) { // Chrome, Safari and Opera
+                document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) { // IE/Edge
+                document.msExitFullscreen();
+            }
         });
 
         function startClock() {
-            timeInterval = setInterval(() => {
+            function updateClock() {
                 const now = new Date();
-                const hours = String(now.getHours()).padStart(2, '0');
-                const minutes = String(now.getMinutes()).padStart(2, '0');
-                const seconds = String(now.getSeconds()).padStart(2, '0');
-                timerElement.textContent = `${hours}:${minutes}:${seconds}`;
-            }, 1000);
+                timerElement.textContent = now.toLocaleTimeString();
+            }
+            updateClock();
+            setInterval(updateClock, 1000);
         }
 
         async function captureAndUpload() {
