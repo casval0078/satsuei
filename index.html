@@ -9,6 +9,7 @@
             margin: 0;
             padding: 0;
             height: 100%;
+            width: 100%;
             background-color: black;
             display: flex;
             justify-content: center;
@@ -22,10 +23,11 @@
             border-radius: 50%;
             border: none;
             cursor: pointer;
+            z-index: 10;
         }
         #overlay {
             display: none;
-            position: absolute;
+            position: fixed;
             top: 0;
             left: 0;
             width: 100%;
@@ -35,6 +37,16 @@
             align-items: center;
             color: white;
             font-size: 48px;
+            z-index: 20;
+        }
+        #error-message {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: red;
+            font-size: 24px;
+            z-index: 30;
         }
     </style>
 </head>
@@ -42,6 +54,7 @@
     <button id="capture-button"></button>
     <div id="overlay">
         <span id="timer"></span>
+        <div id="error-message"></div>
     </div>
     <video id="video" autoplay playsinline style="display:none;"></video>
 
@@ -70,6 +83,7 @@
         const overlay = document.getElementById('overlay');
         const video = document.getElementById('video');
         const timerElement = document.getElementById('timer');
+        const errorMessage = document.getElementById('error-message');
         let mediaStream = null;
         let captureInterval = null;
         let timeInterval = null;
@@ -86,6 +100,7 @@
                 captureInterval = setInterval(captureAndUpload, 10000);
             } catch (err) {
                 console.error('Error accessing camera: ', err);
+                errorMessage.textContent = `Camera error: ${err.message}`;
                 captureButton.style.display = 'block';
                 overlay.style.display = 'none';
             }
@@ -128,6 +143,7 @@
                     console.log('Uploaded a blob or file!');
                 } catch (err) {
                     console.error('Error uploading to Firebase: ', err);
+                    errorMessage.textContent = `Upload error: ${err.message}`;
                 }
             }, 'image/jpeg');
         }
