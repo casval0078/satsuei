@@ -1,54 +1,16 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Camera Capture</title>
-    <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            background-color: black;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-        }
-        #capture-button {
-            width: 100px;
-            height: 100px;
-            background-color: red;
-            border-radius: 50%;
-            border: none;
-            cursor: pointer;
-        }
-        #overlay {
-            display: none;
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: black;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            font-size: 24px;
-        }
-    </style>
-</head>
-<body>
+
     <button id="capture-button"></button>
-    <div id="overlay">タップして停止</div>
+    <div id="overlay">
+        <span id="timer"></span>
+    </div>
     <video id="video" autoplay playsinline style="display:none;"></video>
 
     <!-- Firebase Configuration -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-storage.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-storage.js"></script>
     <script>
         // Your Firebase configuration
-        const firebaseConfig = {
+        var firebaseConfig = {
  	   apiKey: "AIzaSyCIY6aAg-JCpKnm6X51tEktW6v_fLWfU10",
   	   authDomain: "satsuei-c1b33.firebaseapp.com",
  	   projectId: "satsuei-c1b33",
@@ -58,8 +20,8 @@
  	   measurementId: "G-KS0947K55F"
 	};
         // Initialize Firebase
-        const app = firebase.initializeApp(firebaseConfig);
-        const storage = firebase.storage();
+        firebase.initializeApp(firebaseConfig);
+        var storage = firebase.storage();
     </script>
 
     <!-- Camera and Capture Script -->
@@ -67,29 +29,52 @@
         const captureButton = document.getElementById('capture-button');
         const overlay = document.getElementById('overlay');
         const video = document.getElementById('video');
+        const timerElement = document.getElementById('timer');
         let mediaStream = null;
         let captureInterval = null;
+        let countdownInterval = null;
+        let countdown = 10;
 
         captureButton.addEventListener('click', async () => {
             captureButton.style.display = 'none';
             overlay.style.display = 'flex';
-            
-            mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
-            video.srcObject = mediaStream;
+            startCountdown();
 
-            captureInterval = setInterval(captureAndUpload, 10000);
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = mediaStream;
+
+                captureInterval = setInterval(captureAndUpload, 10000);
+            } catch (err) {
+                console.error('Error accessing camera: ', err);
+                captureButton.style.display = 'block';
+                overlay.style.display = 'none';
+            }
         });
 
         overlay.addEventListener('click', () => {
             clearInterval(captureInterval);
+            clearInterval(countdownInterval);
             overlay.style.display = 'none';
             captureButton.style.display = 'block';
+            countdown = 10;
 
             if (mediaStream) {
                 mediaStream.getTracks().forEach(track => track.stop());
                 mediaStream = null;
             }
         });
+
+        function startCountdown() {
+            timerElement.textContent = countdown;
+            countdownInterval = setInterval(() => {
+                countdown--;
+                if (countdown < 0) {
+                    countdown = 10;
+                }
+                timerElement.textContent = countdown;
+            }, 1000);
+        }
 
         async function captureAndUpload() {
             const canvas = document.createElement('canvas');
