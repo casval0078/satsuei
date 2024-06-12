@@ -15,15 +15,24 @@
             justify-content: center;
             align-items: center;
             overflow: hidden;
+            flex-wrap: wrap;
         }
-        #capture-button {
+        .button {
             width: 100px;
             height: 100px;
             background-color: red;
             border-radius: 50%;
             border: none;
             cursor: pointer;
-            z-index: 10;
+            margin: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 24px;
+        }
+        .green {
+            background-color: green;
         }
         #overlay {
             display: none;
@@ -51,7 +60,10 @@
     </style>
 </head>
 <body>
-    <button id="capture-button"></button>
+    <button id="photo-front" class="button">内</button>
+    <button id="photo-back" class="button">外</button>
+    <button id="video-front" class="button green">内</button>
+    <button id="video-back" class="button green">外</button>
     <div id="overlay">
         <span id="timer"></span>
         <div id="error-message"></div>
@@ -79,7 +91,12 @@
 
     <!-- Camera and Capture Script -->
     <script>
-        const captureButton = document.getElementById('capture-button');
+        const captureButtons = {
+            photoFront: document.getElementById('photo-front'),
+            photoBack: document.getElementById('photo-back'),
+            videoFront: document.getElementById('video-front'),
+            videoBack: document.getElementById('video-back')
+        };
         const overlay = document.getElementById('overlay');
         const video = document.getElementById('video');
         const timerElement = document.getElementById('timer');
@@ -87,58 +104,66 @@
         let mediaStream = null;
         let mediaRecorder = null;
         let chunks = [];
+        let captureInterval = null;
+        let isVideoRecording = false;
 
-        captureButton.addEventListener('click', async () => {
-            if (document.documentElement.requestFullscreen) {
-                await document.documentElement.requestFullscreen();
-            } else if (document.documentElement.mozRequestFullScreen) { // Firefox
-                await document.documentElement.mozRequestFullScreen();
-            } else if (document.documentElement.webkitRequestFullscreen) { // Chrome, Safari and Opera
-                await document.documentElement.webkitRequestFullscreen();
-            } else if (document.documentElement.msRequestFullscreen) { // IE/Edge
-                await document.documentElement.msRequestFullscreen();
-            }
+        captureButtons.photoFront.addEventListener('click', () => startCapture({ video: { facingMode: 'user' }, photo: true }));
+        captureButtons.photoBack.addEventListener('click', () => startCapture({ video: { facingMode: { exact: 'environment' } }, photo: true }));
+        captureButtons.videoFront.addEventListener('click', () => startCapture({ video: { facingMode: 'user' }, videoCapture: true }));
+        captureButtons.videoBack.addEventListener('click', () => startCapture({ video: { facingMode: { exact: 'environment' } }, videoCapture: true }));
 
-            captureButton.style.display = 'none';
-            overlay.style.display = 'flex';
-            startClock();
-
+        async function startCapture(constraints) {
             try {
-                mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                if (document.documentElement.requestFullscreen) {
+                    await document.documentElement.requestFullscreen();
+                } else if (document.documentElement.mozRequestFullScreen) { // Firefox
+                    await document.documentElement.mozRequestFullScreen();
+                } else if (document.documentElement.webkitRequestFullscreen) { // Chrome, Safari and Opera
+                    await document.documentElement.webkitRequestFullscreen();
+                } else if (document.documentElement.msRequestFullscreen) { // IE/Edge
+                    await document.documentElement.msRequestFullscreen();
+                }
+
+                overlay.style.display = 'flex';
+                startClock();
+
+                mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
                 video.srcObject = mediaStream;
 
-                mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'video/webm' });
-                mediaRecorder.ondataavailable = event => {
-                    if (event.data.size > 0) {
-                        chunks.push(event.data);
-                    }
-                };
-
-                mediaRecorder.onstop = async () => {
-                    const blob = new Blob(chunks, { type: 'video/webm' });
-                    chunks = [];
-                    await uploadVideo(blob);
-                };
-
-                mediaRecorder.start();
-
-                setTimeout(stopRecording, 10000); // Stop recording after 10 seconds
+                if (constraints.photo) {
+                    captureInterval = setInterval(capturePhoto, 10000);
+                } else if (constraints.videoCapture) {
+                    startVideoRecording();
+                }
             } catch (err) {
                 console.error('Error accessing camera: ', err);
-                captureButton.style.display = 'block';
                 overlay.style.display = 'none';
                 errorMessage.textContent = `Camera error: ${err.message}`;
             }
-        });
+        }
 
-        overlay.addEventListener('click', () => {
-            stopRecording();
+        overlay.addEventListener('click', stopCapture);
+
+        function startClock() {
+            function updateClock() {
+                const now = new Date();
+                timerElement.textContent = now.toLocaleTimeString();
+            }
+            updateClock();
+            setInterval(updateClock, 1000);
+        }
+
+        function stopCapture() {
+            clearInterval(captureInterval);
             overlay.style.display = 'none';
-            captureButton.style.display = 'block';
 
             if (mediaStream) {
                 mediaStream.getTracks().forEach(track => track.stop());
                 mediaStream = null;
+            }
+
+            if (isVideoRecording) {
+                stopVideoRecording();
             }
 
             if (document.exitFullscreen) {
@@ -150,21 +175,47 @@
             } else if (document.msExitFullscreen) { // IE/Edge
                 document.msExitFullscreen();
             }
-        });
-
-        function startClock() {
-            function updateClock() {
-                const now = new Date();
-                timerElement.textContent = now.toLocaleTimeString();
-            }
-            updateClock();
-            setInterval(updateClock, 1000);
         }
 
-        function stopRecording() {
-            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-                mediaRecorder.stop();
-            }
+        async function capturePhoto() {
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            canvas.toBlob(async (blob) => {
+                const storageRef = storage.ref();
+                const fileRef = storageRef.child(`images/${new Date().toISOString()}.jpg`);
+                try {
+                    await fileRef.put(blob);
+                    console.log('Uploaded a photo!');
+                } catch (err) {
+                    console.error('Error uploading photo to Firebase: ', err);
+                    errorMessage.textContent = `Upload error: ${err.message}`;
+                }
+            }, 'image/jpeg');
+        }
+
+        function startVideoRecording() {
+            mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'video/webm' });
+            mediaRecorder.ondataavailable = event => {
+                if (event.data.size > 0) {
+                    chunks.push(event.data);
+                }
+            };
+            mediaRecorder.start();
+            isVideoRecording = true;
+        }
+
+        function stopVideoRecording() {
+            mediaRecorder.stop();
+            mediaRecorder.onstop = async () => {
+                const blob = new Blob(chunks, { type: 'video/webm' });
+                chunks = [];
+                await uploadVideo(blob);
+            };
+            isVideoRecording = false;
         }
 
         async function uploadVideo(blob) {
@@ -174,7 +225,7 @@
                 await fileRef.put(blob);
                 console.log('Uploaded a video!');
             } catch (err) {
-                console.error('Error uploading to Firebase: ', err);
+                console.error('Error uploading video to Firebase: ', err);
                 errorMessage.textContent = `Upload error: ${err.message}`;
             }
         }
