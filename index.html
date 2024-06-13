@@ -120,10 +120,25 @@
         let captureInterval = null;
         let isVideoRecording = false;
 
-        captureButtons.photoFront.addEventListener('click', () => startCapture({ video: { facingMode: 'user' }, photo: true }));
-        captureButtons.photoBack.addEventListener('click', () => startCapture({ video: { facingMode: { exact: 'environment' } }, photo: true }));
-        captureButtons.videoFront.addEventListener('click', () => startCapture({ video: { facingMode: 'user' }, videoCapture: true }));
-        captureButtons.videoBack.addEventListener('click', () => startCapture({ video: { facingMode: { exact: 'environment' } }, videoCapture: true }));
+        captureButtons.photoFront.addEventListener('click', () => requestCameraAccess({ video: { facingMode: 'user' }, photo: true }));
+        captureButtons.photoBack.addEventListener('click', () => requestCameraAccess({ video: { facingMode: { exact: 'environment' } }, photo: true }));
+        captureButtons.videoFront.addEventListener('click', () => requestCameraAccess({ video: { facingMode: 'user' }, videoCapture: true }));
+        captureButtons.videoBack.addEventListener('click', () => requestCameraAccess({ video: { facingMode: { exact: 'environment' } }, videoCapture: true }));
+
+        async function requestCameraAccess(constraints) {
+            try {
+                // Check if the user has already granted permissions
+                const permission = await navigator.permissions.query({ name: 'camera' });
+                if (permission.state === 'denied') {
+                    throw new Error('Camera access denied by user.');
+                }
+
+                await startCapture(constraints);
+            } catch (err) {
+                console.error('Camera permission error: ', err);
+                errorMessage.textContent = `Camera permission error: ${err.message}`;
+            }
+        }
 
         async function startCapture(constraints) {
             try {
