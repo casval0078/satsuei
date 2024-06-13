@@ -80,7 +80,6 @@
     <button id="video-front" class="button bottom-left">内</button>
     <button id="video-back" class="button bottom-right">外</button>
     <div id="overlay">
-        <span id="timer"></span>
         <div id="error-message"></div>
     </div>
     <video id="video" autoplay playsinline style="display:none;"></video>
@@ -114,7 +113,6 @@
         };
         const overlay = document.getElementById('overlay');
         const video = document.getElementById('video');
-        const timerElement = document.getElementById('timer');
         const errorMessage = document.getElementById('error-message');
         let mediaStream = null;
         let mediaRecorder = null;
@@ -140,7 +138,6 @@
                 }
 
                 overlay.style.display = 'flex';
-                startClock();
 
                 mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
                 video.srcObject = mediaStream;
@@ -158,15 +155,6 @@
         }
 
         overlay.addEventListener('click', stopCapture);
-
-        function startClock() {
-            function updateClock() {
-                const now = new Date();
-                timerElement.textContent = now.toLocaleTimeString();
-            }
-            updateClock();
-            setInterval(updateClock, 1000);
-        }
 
         function stopCapture() {
             clearInterval(captureInterval);
