@@ -148,6 +148,14 @@
                 console.error('Error accessing camera: ', err);
                 overlay.style.display = 'none';
                 errorMessage.textContent = `Camera error: ${err.message}`;
+                
+                if (err.name === 'NotAllowedError') {
+                    errorMessage.textContent = 'Camera access was denied. Please allow camera access in your browser settings.';
+                } else if (err.name === 'NotFoundError') {
+                    errorMessage.textContent = 'No camera device found. Please ensure your camera is connected and working.';
+                } else {
+                    errorMessage.textContent = `Camera error: ${err.message}`;
+                }
             }
         }
 
