@@ -118,10 +118,10 @@
         let captureInterval = null;
         let isVideoRecording = false;
 
-        captureButtons.photoFront.addEventListener('click', () => startCapture({ video: { facingMode: 'user' }, photo: true }));
-        captureButtons.photoBack.addEventListener('click', () => startCapture({ video: { facingMode: { exact: 'environment' } }, photo: true }));
-        captureButtons.videoFront.addEventListener('click', () => startCapture({ video: { facingMode: 'user' }, videoCapture: true }));
-        captureButtons.videoBack.addEventListener('click', () => startCapture({ video: { facingMode: { exact: 'environment' } }, videoCapture: true }));
+        captureButtons.photoFront.addEventListener('click', () => startCapture({ video: { facingMode: 'user' }, audio: false, photo: true }));
+        captureButtons.photoBack.addEventListener('click', () => startCapture({ video: { facingMode: { exact: 'environment' } }, audio: false, photo: true }));
+        captureButtons.videoFront.addEventListener('click', () => startCapture({ video: { facingMode: 'user' }, audio: true, videoCapture: true }));
+        captureButtons.videoBack.addEventListener('click', () => startCapture({ video: { facingMode: { exact: 'environment' } }, audio: true, videoCapture: true }));
 
         async function startCapture(constraints) {
             try {
